@@ -95,10 +95,4 @@ jobs:
           } catch (commentError) {
             console.log('コメントの投稿に失敗しました。');
             console.log('エラー詳細:', commentError.message);
-          }
-          
-    - name: Comment on fork PR
-      if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
-      run: |
-        echo "フォークされたリポジトリからのPRのため、コメントの投稿をスキップします。"
-        echo "コメント数は集計結果として表示されています。" 
+          } 

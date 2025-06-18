@@ -41,6 +41,7 @@ def get_all_pr_comments(github_token, repo_name):
                 'pr_state': pr.state,
                 'pr_created_at': pr.created_at.isoformat(),
                 'pr_merged_at': pr.merged_at.isoformat() if pr.merged_at else '',
+                'pr_author': pr.user.login if pr.user else '',
                 'comment_type': 'review_comment',
                 'comment_id': comment.id,
                 'comment_body': comment.body,
@@ -64,6 +65,7 @@ def get_all_pr_comments(github_token, repo_name):
                     'pr_state': pr.state,
                     'pr_created_at': pr.created_at.isoformat(),
                     'pr_merged_at': pr.merged_at.isoformat() if pr.merged_at else '',
+                    'pr_author': pr.user.login if pr.user else '',
                     'comment_type': 'review',
                     'comment_id': review.id,
                     'comment_body': review.body,
@@ -86,6 +88,7 @@ def get_all_pr_comments(github_token, repo_name):
                 'pr_state': pr.state,
                 'pr_created_at': pr.created_at.isoformat(),
                 'pr_merged_at': pr.merged_at.isoformat() if pr.merged_at else '',
+                'pr_author': pr.user.login if pr.user else '',
                 'comment_type': 'issue_comment',
                 'comment_id': comment.id,
                 'comment_body': comment.body,
@@ -114,7 +117,7 @@ def export_to_csv(comments_data, output_file):
         # 空のCSVファイルをヘッダー付きで生成
         df = pd.DataFrame(columns=[
             'pr_number', 'pr_title', 'pr_state', 'pr_created_at', 'pr_merged_at',
-            'comment_type', 'comment_id', 'comment_body', 'comment_created_at',
+            'pr_author', 'comment_type', 'comment_id', 'comment_body', 'comment_created_at',
             'comment_updated_at', 'comment_user', 'comment_path', 'comment_line',
             'comment_side', 'comment_start_line', 'comment_start_side'
         ])
@@ -170,7 +173,7 @@ def main():
         try:
             empty_df = pd.DataFrame(columns=[
                 'pr_number', 'pr_title', 'pr_state', 'pr_created_at', 'pr_merged_at',
-                'comment_type', 'comment_id', 'comment_body', 'comment_created_at',
+                'pr_author', 'comment_type', 'comment_id', 'comment_body', 'comment_created_at',
                 'comment_updated_at', 'comment_user', 'comment_path', 'comment_line',
                 'comment_side', 'comment_start_line', 'comment_start_side'
             ])

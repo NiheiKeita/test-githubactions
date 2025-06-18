@@ -1,0 +1,43 @@
+name: PR Comments Counter
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  count-pr-comments:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        pip install PyGithub
+        
+    - name: Count PR comments
+      id: count
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        python scripts/count_pr_comments.py
+        echo "count_completed=true" >> $GITHUB_OUTPUT
+        
+    - name: Display results
+      run: |
+        if [ -f "comment_counts.json" ]; then
+          echo "=== PR Comments Count Results ==="
+          cat comment_counts.json
+        else
+          echo "コメント数集計ファイルが見つかりません。"
+        fi 

@@ -109,26 +109,28 @@ def export_to_csv(comments_data, output_file):
         comments_data (list): コメントデータのリスト
         output_file (str): 出力ファイル名
     """
-    if not comments_data:
-        print("コメントデータが見つかりませんでした。")
-        return
-    
     # DataFrameに変換
     df = pd.DataFrame(comments_data)
     
-    # CSVに出力
+    # CSVに出力（データが空でもヘッダー付きで出力）
     df.to_csv(output_file, index=False, encoding='utf-8-sig')
     
-    print(f"CSVファイルが生成されました: {output_file}")
-    print(f"総コメント数: {len(comments_data)}")
-    print(f"PR数: {df['pr_number'].nunique()}")
-    
-    # 統計情報を表示
-    print("\n=== 統計情報 ===")
-    print(f"コメントタイプ別件数:")
-    print(df['comment_type'].value_counts())
-    print(f"\nユーザー別コメント数:")
-    print(df['comment_user'].value_counts().head(10))
+    if not comments_data:
+        print("コメントデータが見つかりませんでした。空のCSVファイルを生成します。")
+        print(f"CSVファイルが生成されました: {output_file}")
+        print(f"総コメント数: 0")
+        print(f"PR数: 0")
+    else:
+        print(f"CSVファイルが生成されました: {output_file}")
+        print(f"総コメント数: {len(comments_data)}")
+        print(f"PR数: {df['pr_number'].nunique()}")
+        
+        # 統計情報を表示
+        print("\n=== 統計情報 ===")
+        print(f"コメントタイプ別件数:")
+        print(df['comment_type'].value_counts())
+        print(f"\nユーザー別コメント数:")
+        print(df['comment_user'].value_counts().head(10))
 
 def main():
     """メイン関数"""
@@ -147,10 +149,17 @@ def main():
     print(f"リポジトリ: {repo_name}")
     print("PRコメントの取得を開始します...")
     
+    comments_data = []
+    
     try:
         # コメントデータを取得
         comments_data = get_all_pr_comments(github_token, repo_name)
         
+    except Exception as e:
+        print(f"コメントデータの取得中にエラーが発生しました: {e}")
+        print("空のCSVファイルを生成します。")
+    
+    try:
         # CSVファイルに出力
         output_file = 'pr_comments_export.csv'
         export_to_csv(comments_data, output_file)
@@ -158,8 +167,15 @@ def main():
         print("処理が完了しました。")
         
     except Exception as e:
-        print(f"エラーが発生しました: {e}")
-        sys.exit(1)
+        print(f"CSVファイルの生成中にエラーが発生しました: {e}")
+        # エラーが発生しても空のCSVファイルを生成
+        try:
+            df = pd.DataFrame()
+            df.to_csv('pr_comments_export.csv', index=False, encoding='utf-8-sig')
+            print("空のCSVファイルを生成しました。")
+        except Exception as csv_error:
+            print(f"空のCSVファイルの生成にも失敗しました: {csv_error}")
+            sys.exit(1)
 
 if __name__ == "__main__":
     main() 

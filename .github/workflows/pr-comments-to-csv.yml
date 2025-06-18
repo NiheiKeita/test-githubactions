@@ -22,12 +22,15 @@ jobs:
         pip install PyGithub pandas
         
     - name: Export PR comments to CSV
+      id: export
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         python scripts/export_pr_comments.py
+        echo "export_completed=true" >> $GITHUB_OUTPUT
         
     - name: Upload CSV artifact
+      if: steps.export.outputs.export_completed == 'true'
       uses: actions/upload-artifact@v4
       with:
         name: pr-comments-export
@@ -39,22 +42,53 @@ jobs:
       with:
         script: |
           const fs = require('fs');
-          const csv = fs.readFileSync('pr_comments_export.csv', 'utf8');
+          const path = require('path');
           
-          const comment = `## PR Comments Export
+          let comment = '';
+          let csvContent = '';
+          let rowCount = 0;
           
-          CSVファイルが生成されました。アーティファクトとしてダウンロードできます。
-          
-          **ファイル名:** pr_comments_export.csv
-          **生成日時:** ${new Date().toISOString()}
-          
-          ### データ概要
-          \`\`\`
-          ${csv.split('\n').slice(0, 10).join('\n')}
-          ${csv.split('\n').length > 10 ? '...' : ''}
-          \`\`\`
-          
-          **総行数:** ${csv.split('\n').length - 1}行（ヘッダー除く）`;
+          try {
+            // CSVファイルの存在チェック
+            if (fs.existsSync('pr_comments_export.csv')) {
+              csvContent = fs.readFileSync('pr_comments_export.csv', 'utf8');
+              rowCount = csvContent.split('\n').length - 1; // ヘッダーを除く
+              
+              comment = `## PR Comments Export ✅
+              
+              CSVファイルが正常に生成されました。アーティファクトとしてダウンロードできます。
+              
+              **ファイル名:** pr_comments_export.csv
+              **生成日時:** ${new Date().toISOString()}
+              **総行数:** ${rowCount}行（ヘッダー除く）
+              
+              ### データ概要
+              \`\`\`
+              ${csvContent.split('\n').slice(0, 10).join('\n')}
+              ${csvContent.split('\n').length > 10 ? '...' : ''}
+              \`\`\``;
+            } else {
+              comment = `## PR Comments Export ⚠️
+              
+              CSVファイルの生成に失敗しました。
+              
+              **原因:** コメントデータが見つからないか、エラーが発生しました。
+              **生成日時:** ${new Date().toISOString()}
+              
+              ### 考えられる原因
+              - リポジトリにPRが存在しない
+              - PRにコメントが存在しない
+              - GitHub APIのレート制限
+              - 権限の問題`;
+            }
+          } catch (error) {
+            comment = `## PR Comments Export ❌
+            
+            CSVファイルの処理中にエラーが発生しました。
+            
+            **エラー:** ${error.message}
+            **生成日時:** ${new Date().toISOString()}`;
+          }
           
           github.rest.issues.createComment({
             issue_number: context.issue.number,

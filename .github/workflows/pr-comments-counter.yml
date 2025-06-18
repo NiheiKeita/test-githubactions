@@ -1,13 +1,12 @@
 name: PR Comments Counter
 
 on:
-  pull_request_target:
+  pull_request:
     types: [opened, synchronize, reopened]
 
 permissions:
   contents: read
   pull-requests: read
-  issues: write
 
 jobs:
   count-pr-comments:
@@ -16,8 +15,6 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      with:
-        ref: ${{ github.event.pull_request.head.sha }}
       
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -36,63 +33,11 @@ jobs:
         python scripts/count_pr_comments.py
         echo "count_completed=true" >> $GITHUB_OUTPUT
         
-    - name: Create comment with count
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const fs = require('fs');
-          
-          let comment = '';
-          let countData = {};
-          
-          try {
-            // カウント結果ファイルの存在チェック
-            if (fs.existsSync('comment_counts.json')) {
-              countData = JSON.parse(fs.readFileSync('comment_counts.json', 'utf8'));
-              
-              comment = `## PR Comments Count ✅
-              
-              リポジトリのPRコメント数を集計しました。
-              
-              **集計日時:** ${new Date().toISOString()}
-              
-              ### 集計結果
-              - **総PR数:** ${countData.total_prs}件
-              - **総コメント数:** ${countData.total_comments}件
-              - **レビューコメント:** ${countData.review_comments}件
-              - **レビュー:** ${countData.reviews}件
-              - **Issueコメント:** ${countData.issue_comments}件
-              
-              ### 詳細
-              - 平均コメント数/PR: ${countData.avg_comments_per_pr}件
-              - コメントがあるPR: ${countData.prs_with_comments}件
-              - コメントがないPR: ${countData.prs_without_comments}件`;
-            } else {
-              comment = `## PR Comments Count ⚠️
-              
-              コメント数の集計に失敗しました。
-              
-              **原因:** データの取得に失敗したか、エラーが発生しました。
-              **集計日時:** ${new Date().toISOString()}`;
-            }
-          } catch (error) {
-            comment = `## PR Comments Count ❌
-            
-            コメント数の集計中にエラーが発生しました。
-            
-            **エラー:** ${error.message}
-            **集計日時:** ${new Date().toISOString()}`;
-          }
-          
-          try {
-            await github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: comment
-            });
-            console.log('コメントが正常に投稿されました。');
-          } catch (commentError) {
-            console.log('コメントの投稿に失敗しました。');
-            console.log('エラー詳細:', commentError.message);
-          } 
+    - name: Display results
+      run: |
+        if [ -f "comment_counts.json" ]; then
+          echo "=== PR Comments Count Results ==="
+          cat comment_counts.json
+        else
+          echo "コメント数集計ファイルが見つかりません。"
+        fi 

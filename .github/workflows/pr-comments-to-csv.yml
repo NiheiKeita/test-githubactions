@@ -1,0 +1,64 @@
+name: PR Comments to CSV
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  export-pr-comments:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        pip install PyGithub pandas
+        
+    - name: Export PR comments to CSV
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        python scripts/export_pr_comments.py
+        
+    - name: Upload CSV artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: pr-comments-export
+        path: pr_comments_export.csv
+        retention-days: 30
+        
+    - name: Create comment with CSV data
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const csv = fs.readFileSync('pr_comments_export.csv', 'utf8');
+          
+          const comment = `## PR Comments Export
+          
+          CSVファイルが生成されました。アーティファクトとしてダウンロードできます。
+          
+          **ファイル名:** pr_comments_export.csv
+          **生成日時:** ${new Date().toISOString()}
+          
+          ### データ概要
+          \`\`\`
+          ${csv.split('\n').slice(0, 10).join('\n')}
+          ${csv.split('\n').length > 10 ? '...' : ''}
+          \`\`\`
+          
+          **総行数:** ${csv.split('\n').length - 1}行（ヘッダー除く）`;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          }); 

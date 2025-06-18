@@ -1,0 +1,54 @@
+name: PR Comments CSV Export
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  export-pr-comments-csv:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        pip install PyGithub pandas
+        
+    - name: Export PR comments to CSV
+      id: export
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        python scripts/export_pr_comments_csv.py
+        echo "export_completed=true" >> $GITHUB_OUTPUT
+        
+    - name: Display CSV preview
+      run: |
+        if [ -f "pr_comments_export.csv" ]; then
+          echo "=== CSV Preview (first 10 lines) ==="
+          head -10 pr_comments_export.csv
+          echo ""
+          echo "Total lines: $(wc -l < pr_comments_export.csv)"
+        else
+          echo "CSVファイルが見つかりません。"
+        fi
+        
+    - name: Upload CSV as artifact
+      if: steps.export.outputs.export_completed == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: pr-comments-csv
+        path: pr_comments_export.csv
+        retention-days: 30
+        if-no-files-found: error 

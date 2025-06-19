@@ -1,0 +1,51 @@
+name: PR Comments List
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  list-pr-comments:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        pip install PyGithub
+        
+    - name: List PR comments
+      id: list
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        python scripts/list_pr_comments.py
+        echo "list_completed=true" >> $GITHUB_OUTPUT
+        
+    - name: Display results
+      run: |
+        if [ -f "comments_list.json" ]; then
+          echo "=== PR Comments List Results ==="
+          cat comments_list.json
+        else
+          echo "コメント一覧ファイルが見つかりません。"
+        fi
+        
+    - name: Upload comments list as artifact
+      if: steps.list.outputs.list_completed == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: pr-comments-list
+        path: comments_list.json
+        retention-days: 30 

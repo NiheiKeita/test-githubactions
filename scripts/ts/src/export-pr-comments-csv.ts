@@ -33,9 +33,9 @@ async function getAllPRComments(token: string, repository: string): Promise<PRCo
             comment_updated_at: comment.updated_at,
             comment_user: comment.user?.login || '',
             comment_path: comment.path || '',
-            comment_line: comment.line,
+            comment_line: comment.line || null,
             comment_side: comment.side || '',
-            comment_start_line: comment.start_line,
+            comment_start_line: comment.start_line || null,
             comment_start_side: comment.start_side || '',
           });
         }

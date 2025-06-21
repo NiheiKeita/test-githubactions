@@ -1,6 +1,35 @@
 import { Octokit } from '@octokit/rest';
 import { PRComment } from './types';
 
+// GitHub APIのレスポンス型を定義
+interface GitHubReviewComment {
+  id: number;
+  body?: string;
+  created_at: string;
+  updated_at: string;
+  user?: { login: string } | null;
+  path?: string;
+  line?: number | null;
+  side?: string;
+  start_line?: number | null;
+  start_side?: string | null;
+}
+
+interface GitHubReview {
+  id: number;
+  body?: string;
+  submitted_at?: string;
+  user?: { login: string } | null;
+}
+
+interface GitHubIssueComment {
+  id: number;
+  body?: string;
+  created_at: string;
+  updated_at: string;
+  user?: { login: string } | null;
+}
+
 export class GitHubClient {
   private octokit: Octokit;
   private owner: string;
@@ -38,7 +67,7 @@ export class GitHubClient {
     return pullRequests;
   }
 
-  async getReviewComments(prNumber: number): Promise<PRComment[]> {
+  async getReviewComments(prNumber: number): Promise<GitHubReviewComment[]> {
     const comments = [];
     let page = 1;
 
@@ -60,7 +89,7 @@ export class GitHubClient {
     return comments;
   }
 
-  async getReviews(prNumber: number): Promise<any[]> {
+  async getReviews(prNumber: number): Promise<GitHubReview[]> {
     const reviews = [];
     let page = 1;
 
@@ -82,7 +111,7 @@ export class GitHubClient {
     return reviews;
   }
 
-  async getIssueComments(prNumber: number): Promise<any[]> {
+  async getIssueComments(prNumber: number): Promise<GitHubIssueComment[]> {
     const comments = [];
     let page = 1;
 

@@ -1,0 +1,63 @@
+name: PR Comments CSV Export (TypeScript)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  export-pr-comments-csv-ts:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: scripts/ts/package-lock.json
+        
+    - name: Install dependencies
+      working-directory: scripts/ts
+      run: |
+        npm ci
+        
+    - name: Build TypeScript
+      working-directory: scripts/ts
+      run: |
+        npm run build
+        
+    - name: Export PR comments to CSV
+      id: export
+      working-directory: scripts/ts
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        node dist/export-pr-comments-csv.js
+        echo "export_completed=true" >> $GITHUB_OUTPUT
+        
+    - name: Display CSV preview
+      run: |
+        if [ -f "scripts/ts/pr_comments_export.csv" ]; then
+          echo "=== CSV Preview (first 10 lines) ==="
+          head -10 scripts/ts/pr_comments_export.csv
+          echo ""
+          echo "Total lines: $(wc -l < scripts/ts/pr_comments_export.csv)"
+        else
+          echo "CSVファイルが見つかりません。"
+        fi
+        
+    - name: Upload CSV as artifact
+      if: steps.export.outputs.export_completed == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: pr-comments-csv-ts
+        path: scripts/ts/pr_comments_export.csv
+        retention-days: 30
+        if-no-files-found: error 
